@@ -1,7 +1,7 @@
 // Python Wrappers
 use pyo3::conversion::FromPyObject;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict};
+use pyo3::types::{PyBytes, PyDict, PyList};
 use pyo3::wrap_pyfunction;
 // Automerge Libraries
 use automerge_backend;
@@ -102,13 +102,37 @@ fn apply_change(
     return backend_data.unwrap();
 }
 
+fn clean_nb_string(nb_as_str: String) -> String {
+    let mut nbon = &nb_as_str.trim_matches('\\');
+    //let mut nbon = json!(nb_str);
+    info!("After trimming: {:?} ", &nb_as_str.trim_matches('\\'));
+    return nb_as_str;
+}
+
+fn serialize_json_string(nb_as_str: String) {
+    info!(
+        "The json string read from consume_notebook: {:?}",
+        &nb_as_str
+    );
+    // let json1: serde_json::Value =
+    //serde_json::from_str(&nb_as_str.trim_matches('\\')).expect("JSON was not well-formatted");
+}
+
 #[pyfunction]
 fn consume_notebook(nb: PyObject, py: Python) {
-    let res = pyby.extract::<&PyDict>(py).unwrap();
+    let res = nb.extract::<&PyDict>(py).unwrap();
     let res_str = res.to_string();
     let res_dict = res.into_iter();
     info!("The dictionary extracted was: {:?}", res);
     info!("The string extracted from nb: {:?}", res_str);
+    let res1_str = clean_nb_string(res_str);
+    serialize_json_string(res1_str);
+}
+
+#[pyfunction]
+fn consume_cell(cells: PyObject, py: Python) {
+    let cell_list = cells.extract::<&PyList>(py).unwrap();
+    info!("The cells that were extracted: {:?}", cell_list);
 }
 
 #[pyfunction]
@@ -133,5 +157,6 @@ pub fn init_submodule(module: &PyModule) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(apply_change, module)?)?;
     module.add_function(wrap_pyfunction!(get_changes, module)?)?;
     module.add_function(wrap_pyfunction!(consume_notebook, module)?)?;
+    module.add_function(wrap_pyfunction!(consume_cell, module)?)?;
     Ok(())
 }
